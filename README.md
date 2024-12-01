@@ -4,7 +4,8 @@
 # Tutorial
 
 # SetUp Admin privilege 
-'''node.js
+
+```javascript
 module.exports = {
   name: 'example',//example of comamnd 
   description: 'example',//examples of description 
