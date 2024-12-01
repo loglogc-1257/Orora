@@ -1,0 +1,37 @@
+const axios = require('axios');
+const { sendMessage } = require('../handles/sendMessage');
+
+module.exports = {
+  name: 'rbg',
+  description: 'Remove background from an image using the RemoveBG API.',
+  author: 'Aljur pogoy',
+
+  async execute(senderId, args, pageAccessToken, imageUrl) {
+    if (!imageUrl) {
+      return sendMessage(senderId, {
+        text: `Please send an image first, then type "removebg" to remove its background.`
+      }, pageAccessToken);
+    }
+
+    await sendMessage(senderId, { text: 'Removing background from the image, please wait... 🖼️' }, pageAccessToken);
+
+    try {
+      const removeBgUrl = `https://markdevs69v2-679r.onrender.com/new/api/removebg?imageUrl=${encodeURIComponent(imageUrl)}`;
+
+      await sendMessage(senderId, {
+        attachment: {
+          type: 'image',
+          payload: {
+            url: removeBgUrl
+          }
+        }
+      }, pageAccessToken);
+
+    } catch (error) {
+      console.error('Error removing background:', error);
+      await sendMessage(senderId, {
+        text: 'An error occurred while processing the image. Please try again later.'
+      }, pageAccessToken);
+    }
+  }
+};
