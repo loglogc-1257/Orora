@@ -3,6 +3,14 @@
 
 # Tutorial
 
+# SetUp Admin privilege 
+'''node.js
+module.exports = {
+  name: 'example',//example of comamnd 
+  description: 'example',//examples of description 
+  admin: false, //This command is not admin-only
+  async execute(senderId, args, pageAccessToken, sendMessage) {
+
 ## Prerequisites
 Before starting, ensure you have a Facebook Page. If you don't have one, create a Facebook Page first.
 
