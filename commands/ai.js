@@ -7,7 +7,7 @@ module.exports = {
   async execute(senderId, args, pageAccessToken, sendMessage) {
     const prompt = args.join(' ');
     if (prompt === "") {
-      sendMessage(senderId, { text: "Usage: /ai <question>" }, pageAccessToken);
+      sendMessage(senderId, { text: "Usage:  <question>" }, pageAccessToken);
       return; // Ensure the function doesn't continue
     }
     // Inform the user that content is being generated
