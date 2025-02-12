@@ -1,57 +1,34 @@
 const axios = require('axios');
+const { sendMessage } = require('../handles/sendMessage');
+const fs = require('fs');
+
+const token = fs.readFileSync('token.txt', 'utf8').trim();
 
 module.exports = {
   name: 'lyrics',
-  description: 'Fetch song lyrics',
-  author: 'Deku (rest api)',
-  async execute(senderId, args, pageAccessToken, sendMessage) {
-    const query = args.join(' ');
+  description: 'Obtenez les paroles d’une chanson.',
+  usage: 'lyrics [artiste] [titre]',
+  async execute(senderId, args) {
+    if (args.length < 2) {
+      return sendMessage(senderId, { text: 'Usage: lyrics [artiste] [titre]. Exemple: lyrics Eminem Lose Yourself' }, token);
+    }
+
+    const artist = args[0];
+    const title = args.slice(1).join(' ');
+
     try {
-      const apiUrl = `https://deku-rest-apis.ooguy.com/search/lyrics?q=${encodeURIComponent(query)}`;
-      const response = await axios.get(apiUrl);
-      const result = response.data.result;
+      const { data } = await axios.get(`https://api.lyrics.ovh/v1/${artist}/${title}`);
 
-      if (result && result.lyrics) {
-        const lyricsMessage = `Title: ${result.title}\nArtist: ${result.artist}\n\n${result.lyrics}`;
-
-        // Split the lyrics message into chunks if it exceeds 2000 characters
-        const maxMessageLength = 2000;
-        if (lyricsMessage.length > maxMessageLength) {
-          const messages = splitMessageIntoChunks(lyricsMessage, maxMessageLength);
-          for (const message of messages) {
-            sendMessage(senderId, { text: message }, pageAccessToken);
-          }
-        } else {
-          sendMessage(senderId, { text: lyricsMessage }, pageAccessToken);
-        }
-
-        // Optionally send an image if available
-        if (result.image) {
-          sendMessage(senderId, {
-            attachment: {
-              type: 'image',
-              payload: {
-                url: result.image,
-                is_reusable: true
-              }
-            }
-          }, pageAccessToken);
-        }
-      } else {
-        console.error('Error: No lyrics found in the response.');
-        sendMessage(senderId, { text: 'Sorry, no lyrics were found for your query.' }, pageAccessToken);
+      if (!data.lyrics) {
+        return sendMessage(senderId, { text: '❌ Paroles introuvables.' }, token);
       }
+
+      const lyrics = data.lyrics.length > 500 ? data.lyrics.substring(0, 500) + '...' : data.lyrics;
+      await sendMessage(senderId, { text: `🎶 **${title} - ${artist}**\n\n${lyrics}` }, token);
+
     } catch (error) {
-      console.error('Error calling Lyrics API:', error);
-      sendMessage(senderId, { text: 'Sorry, there was an error processing your request.' }, pageAccessToken);
+      console.error(error);
+      await sendMessage(senderId, { text: '❌ Erreur API Lyrics.ovh.' }, token);
     }
   }
 };
-
-function splitMessageIntoChunks(message, chunkSize) {
-  const chunks = [];
-  for (let i = 0; i < message.length; i += chunkSize) {
-    chunks.push(message.slice(i, i + chunkSize));
-  }
-  return chunks;
-}
