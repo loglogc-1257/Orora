@@ -1,9 +1,10 @@
 {
   "name": "nodejs",
   "version": "1.0.0",
-  "description": "",
+  "description": "Projet Node.js déployé sur Render",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -14,13 +15,11 @@
     "axios": "^1.7.2",
     "body-parser": "^1.20.2",
     "canvas": "^2.11.2",
-    "child_process": "^1.0.2",
     "express": "^4.19.2",
     "fs-extra": "^11.2.0",
     "moment-timezone": "^0.5.46",
     "mongodb": "^6.10.0",
     "node-fetch": "^3.3.2",
-    "os": "^0.1.2",
     "pg": "^8.13.1",
     "request": "^2.88.2",
     "tinyurl": "^1.1.7",
