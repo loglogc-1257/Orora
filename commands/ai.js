@@ -37,50 +37,66 @@ module.exports = {
 // Traitement de la réponse AI + génération d'images
 const handleChatResponse = async (senderId, input, pageAccessToken) => {
   const apiUrl = "https://kaiz-apis.gleeze.com/api/bert-ai";
+  let aiResponse = "Je réfléchis..."; // Réponse par défaut au cas où l'API ne répond pas
 
   try {
     const { data } = await axios.get(apiUrl, { params: { q: input, uid: senderId } });
-    const response = data.response;
-
-    const formattedMessage = useFontFormatting ? formatResponse(response) : response;
-    await sendMessage(senderId, { text: formattedMessage }, pageAccessToken);
-
-    // Génération d'une image avec Flux et recherche sur Pinterest
-    const [fluxImageUrl, pinterestImageUrl] = await Promise.all([
-      generateImageWithFlux(input),
-      searchPinterest(input)
-    ]);
-
-    // Envoi des images si elles sont valides
-    if (fluxImageUrl) {
-      await sendMessage(senderId, { 
-        attachment: { type: 'image', payload: { url: fluxImageUrl } } 
-      }, pageAccessToken);
+    if (data.response && data.response.trim() !== "") {
+      aiResponse = data.response;
     }
-
-    if (pinterestImageUrl) {
-      await sendMessage(senderId, { 
-        attachment: { type: 'image', payload: { url: pinterestImageUrl } } 
-      }, pageAccessToken);
-    }
-
   } catch (error) {
-    console.error('Erreur AI:', error.message);
-    const errorMessage = "⚠️ Veuillez patienter un instant !";
-    const formattedMessage = useFontFormatting ? formatResponse(errorMessage) : errorMessage;
-    await sendMessage(senderId, { text: formattedMessage }, pageAccessToken);
+    console.error('Erreur AI détectée, mais le bot continue.');
+  }
+
+  // Envoi de la réponse AI en plusieurs parties si nécessaire
+  const chunks = splitMessage(aiResponse);
+  for (const chunk of chunks) {
+    const formattedChunk = useFontFormatting ? formatResponse(chunk) : chunk;
+    await sendMessage(senderId, { text: formattedChunk }, pageAccessToken);
+  }
+
+  let pinterestImageUrl = null;
+  let fluxImageUrls = [];
+
+  try {
+    pinterestImageUrl = await searchPinterest(input);
+  } catch (error) {
+    console.error('Erreur Pinterest détectée, mais le bot continue.');
+  }
+
+  try {
+    fluxImageUrls.push(await generateImageWithFlux(input));
+  } catch (error) {
+    console.error('Erreur Flux (1ère image), mais le bot continue.');
+  }
+
+  if (!pinterestImageUrl) {
+    try {
+      fluxImageUrls.push(await generateImageWithFlux(input));
+    } catch (error) {
+      console.error('Erreur Flux (2ème image), mais le bot continue.');
+    }
+  }
+
+  // Envoi des images
+  if (pinterestImageUrl) {
+    await sendMessage(senderId, { 
+      attachment: { type: 'image', payload: { url: pinterestImageUrl } } 
+    }, pageAccessToken);
+  }
+
+  for (const url of fluxImageUrls) {
+    if (url) {
+      await sendMessage(senderId, { 
+        attachment: { type: 'image', payload: { url } } 
+      }, pageAccessToken);
+    }
   }
 };
 
 // Génération d'image avec Flux
 const generateImageWithFlux = async (prompt) => {
-  const apiUrl = `https://kaiz-apis.gleeze.com/api/imagine?prompt=${encodeURIComponent(prompt)}`;
-  try {
-    return apiUrl;
-  } catch (error) {
-    console.error('Erreur Flux:', error.message);
-    return null;
-  }
+  return `https://kaiz-apis.gleeze.com/api/imagine?prompt=${encodeURIComponent(prompt)}`;
 };
 
 // Recherche d'image sur Pinterest
@@ -89,9 +105,17 @@ const searchPinterest = async (searchQuery) => {
     const { data } = await axios.get(`https://hiroshi-api.onrender.com/image/pinterest?search=${encodeURIComponent(searchQuery)}`);
     return data.data.length > 0 ? data.data[0] : null;
   } catch (error) {
-    console.error('Erreur Pinterest:', error.message);
     return null;
   }
+};
+
+// Fonction pour découper un message trop long en plusieurs parties
+const splitMessage = (text, maxLength = 2000) => {
+  const chunks = [];
+  for (let i = 0; i < text.length; i += maxLength) {
+    chunks.push(text.substring(i, i + maxLength));
+  }
+  return chunks;
 };
 
 // Mise en forme du texte (gras)
